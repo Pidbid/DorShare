@@ -15,7 +15,7 @@
         <van-nav-bar title="Dor-Share" leftarrow="false"></van-nav-bar>
         <van-tabs @click="tabSwitch" :style="indexStyle" :lazy-render="false" sticky>
             <van-tab title="视频">
-                <div id="dplayer"></div>
+                <div id="dplayer" style="height: 400px;"></div>
                 <van-cell-group v-for="(vi,index) in video" v-bind:key="index">
                     <van-cell :title="vi['name']" @click="changePlay(vi['path'])"></van-cell>
                 </van-cell-group>
@@ -160,7 +160,6 @@
             methods: {
                 tabSwitch: function (index) {
                     console.log(index);
-                    this.dp.pause()
                     if (index == 0) {
                         this.video = []
                         let that = this
