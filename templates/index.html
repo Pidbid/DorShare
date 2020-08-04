@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../static/css/vant.css">
+    <link rel="stylesheet" href="../static/css/DPlayer.min.css">
+    <link rel="stylesheet" href="../static/css/APlayer.min.css">
+</head>
+
+<body>
+    <div id="app">
+        <van-nav-bar title="Dor-Share" leftarrow="false"></van-nav-bar>
+        <van-tabs @click="tabSwitch" :style="indexStyle" :lazy-render="false" sticky>
+            <van-tab title="视频">
+                <div id="dplayer"></div>
+                <van-cell-group v-for="(vi,index) in video" v-bind:key="index">
+                    <van-cell :title="vi['name']" @click="changePlay(vi['path'])"></van-cell>
+                </van-cell-group>
+            </van-tab>
+            <van-tab title="图片">
+                <van-grid :border="false" :column-num="3" clickable>
+                    <van-grid-item v-for="pic in picture" @click="imgpreview(pic['path'])">
+                        <van-image :src="pic['path']" style="height: 120px;" />
+                    </van-grid-item>
+                </van-grid>
+            </van-tab>
+            <van-tab title="音乐">
+                <div id="aplayer"></div>
+            </van-tab>
+            <van-tab title="文件">
+                <div v-for="f in file">
+                    <van-cell :title="f['name']" is-link :url="f['path']" />
+                </div>
+            </van-tab>
+        </van-tabs>
+        <van-tabs @click="manageSwitch" sticky :style="manageStyle" v-model="manages" type="card">
+            <van-tab title="上传">
+                <van-cell title="添加文件" @click="select_file">
+                    <template #right-icon>
+                        <van-icon name="plus" style="font-size: 16px; line-height: inherit;" />
+                    </template>
+                </van-cell>
+                <form action="#" method="post" style="display: none;">
+                    <input name="files" type="file" ref="hideupload" multiple @change="filechange">
+                </form>
+                <div v-for="(file,index) in fileName">
+                    <van-cell :title="file">
+                        <template #right-icon>
+                            <van-icon name="cross" style="font-size: 16px; line-height: inherit;"
+                                @click="delFile(index)" />
+                        </template>
+                    </van-cell>
+                </div>
+                <div :style="progress">
+                    <van-progress :percentage="nowPercent"></van-progress>
+                </div>
+                <div ref="tijiao" style="margin: 16px;top: 50px;">
+                    <van-button round block plain type="info" @click="uploads">
+                        开始上传
+                    </van-button>
+                </div>
+            </van-tab>
+            <van-tab title="离线">
+                <van-field v-model="downloadUrl" rows="4" autosize label="地址" type="textarea" placeholder="http/https">
+                </van-field>
+                <div style="margin: 16px;top: 50px;">
+                    <van-button round block plain type="info">
+                        开始下载
+                    </van-button>
+                </div>
+                <van-steps :active="steps">
+                    <van-step>地址检测</van-step>
+                    <van-step>开始下载</van-step>
+                    <van-step>下载完成</van-step>
+                </van-steps>
+            </van-tab>
+            <van-tab title="删除">
+                <div v-for="f in getallFiles">
+                    <van-cell :title="f['name']" :label="f['tag']">
+                        <template #right-icon>
+                            <van-icon name="cross" style="font-size: 16px; line-height: inherit;"
+                                @click="deleteFile(f['name'],f['tag'])" />
+                        </template>
+                    </van-cell>
+                </div>
+            </van-tab>
+        </van-tabs>
+        <van-tabbar @change="changeTab" v-model="activeTab">
+            <van-tabbar-item icon="home-o">浏览</van-tabbar-item>
+            <van-tabbar-item icon="search">管理</van-tabbar-item>
+        </van-tabbar>
+        <van-dialog v-model="showimg">
+            <div v-html="imgurl"></div>
+        </van-dialog>
+    </div>
+
+    <!-- 引入Vue -->
+    <script src="../static/js/vue.js"></script>
+    <script src="../static/js/vant.min.js"></script>
+    <script src="../static/js/axios.min.js"></script>
+    <script src="../static/js/DPlayer.min.js"></script>
+    <script src="../static/js/APlayer.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    api: "http://127.0.0.1",
+                    activeName: "0",
+                    video: [],
+                    play_url: "",
+                    picture: [],
+                    music: [],
+                    file: [],
+                    images: [],
+                    showimg: false,
+                    imgurl: '',
+                    manageStyle: "display:none;",
+                    indexStyle: "display:block;",
+                    progress: "display:none;",
+                    activeTab: 0,
+                    uploadActive: 0,
+                    addFiles: [],
+                    selectFile: [],
+                    fileName: [],
+                    downloadUrl: '',
+                    steps: 0,
+                    getallFiles: [],
+                    nowPercent: "0",
+                    dp: null,
+                    ap: null
+                };
+            },
+            created() {
+                axios.defaults.headers.post['Content-Type'] = "multipart/form-data"
+                this.manages = 0
+                let that = this
+                axios.get(this.api + "/file/video").then(function (res) {
+                    that.play_url = res.data[0]['path']
+                    for (let i = 0; i < res.data.length; i++) {
+                        that.video.push(res.data[i])
+                    }
+                })
+            },
+            mounted() {
+                let that = this
+                axios.get(this.api + "/file/video").then(function (res) {
+                    console.log(res.data.length);
+                    if (res.data.length > 0) {
+                        that.dp = new DPlayer({
+                            container: document.getElementById('dplayer'),
+                            video: { url: that.api + "/" + res.data[0]['path'] },
+                        })
+                    }
+                })
+            },
+            methods: {
+                tabSwitch: function (index) {
+                    console.log(index);
+                    this.dp.pause()
+                    if (index == 0) {
+                        this.video = []
+                        let that = this
+                        axios.get(this.api + "/file/video").then(function (res) {
+                            console.log(res.data)
+                            for (let i = 0; i < res.data.length; i++) {
+                                that.video.push(res.data[i])
+                            }
+                        })
+                    }
+                    if (index == 1) {
+                        this.picture = []
+                        let that = this
+                        axios.get(this.api + "/file/img").then(function (res) {
+                            console.log(res.data)
+                            for (let i = 0; i < res.data.length; i++) {
+                                that.picture.push(res.data[i])
+                                that.images.push(res.data[i]['path'])
+                            }
+                        })
+                    }
+                    if (index == 2) {
+                        this.music = []
+                        let that = this
+                        var msc = []
+                        axios.get(this.api + "/file/music").then(function (res) {
+                            if (res.data.length > 0) {
+                                for (let i = 0; i < res.data.length; i++) {
+                                    msc.push({
+                                        name: res.data[i]['name'],
+                                        url: res.data[i]['path'],
+                                        cover: 'static/img/music.jpg'
+                                    })
+                                }
+                                ap = new APlayer({
+                                    container: document.getElementById('aplayer'),
+                                    audio: msc
+                                });
+                            }
+                        })
+                    }
+                    if (index == 3) {
+                        this.file = []
+                        let that = this
+                        axios.get(this.api + "/file/oth").then(function (res) {
+                            console.log(res.data)
+                            for (let i = 0; i < res.data.length; i++) {
+                                that.file.push(res.data[i])
+                            }
+                        })
+                    }
+                },
+                imgpreview: function (id) {
+                    this.imgurl = '<img src="' + id + '" style="width:100%;height:200px;" />'
+                    this.showimg = true
+                },
+                closeImg: function () {
+                    console.log("click close")
+                    this.showimg = false
+                },
+                changeTab: function (index) {
+                    console.log(index)
+                    if (index == 1) {
+                        this.manageStyle = "display:block;"
+                        this.indexStyle = "display:none;"
+                        this.activeTab = 1
+                    }
+                    if (index == 0) {
+                        this.manageStyle = "display:none;"
+                        this.indexStyle = "display:block;"
+                        this.activeTab = 0
+                    }
+                },
+                manageSwitch: function (index) {
+                    console.log(index)
+                    let that = this
+                    if (index == 2) {
+                        axios.get(this.api + "/allfiles/").then(function (res) {
+                            for (let i in res.data) {
+                                that.getallFiles.push(res.data[i])
+                            }
+                        })
+                    }
+                },
+                filechange: function (e) {
+                    console.log(e)
+                    let tFiles = e.target.files;
+                    this.addFiles = tFiles
+                    for (let i = 0; i < this.addFiles.length; i++) {
+                        this.fileName.push(this.addFiles[i]['name'])
+                    }
+                },
+                upload_file: function (file) {//上传文件功能函数
+                    let that = this
+                    let param = new FormData()
+                    for (let i = 0; i < file.length; i++) {
+                        for (let j = 0; j < this.fileName.length; j++) {
+                            if (file[i]['name'] == this.fileName[j]) {
+                                console.log(file[i]['name'], this.fileName[j])
+                                param.append("files", file[i])
+                            }
+                        }
+                    }
+                    let config = {
+                        headers: { "Content-Type": "multipart/form-data" }, onUploadProgress: function (res) {
+                            //console.log(res)
+                            var percent = (res['loaded'] / res['total']) * 100
+                            //console.log(percent)
+                            if (percent != 100 & percent >= 10) {
+                                that.nowPercent = percent.toString().substr(0, 2)
+                            } else if (percent < 10) {
+                                that.nowPercent = percent.toString().substr(0, 1)
+                            }
+                        }
+                    }
+                    axios.post(this.api + "/upload/", param, config).then(function (res) {
+                        if (res.data['name'] != "") {
+                            vant.Notify({ type: 'success', message: '上传成功！' });
+                            that.nowPercent = "100"
+                        }
+                    })
+                },
+                uploads: function () {//上传文件主函数
+                    this.nowPercent = "0"
+                    if (this.fileName.length != 0) {
+                        this.progress = "display:block;"
+                        this.upload_file(this.addFiles)
+                    }
+                },
+                select_file: function () { //模拟点击文件选择按钮
+                    this.$refs.hideupload.click()
+                },
+                delFile: function (e) { //在文件列表内删除已选择文件
+                    vant.Notify({ type: 'primary', message: "已取消该文件的上传" });
+                    this.fileName.splice(e)
+                },
+                deleteFile: function (name, tag) {
+                    let that = this
+                    axios.get(this.api + "/delfile?name=" + name + "&tag=" + tag).then(function (res) {
+                        if (res.data["status"] == "success") {
+                            for (let i = 0; i < that.getallFiles.length; i++) {
+                                if (name == that.getallFiles[i]['name']) {
+                                    that.getallFiles.splice(i, 1)
+                                }
+                            }
+                        }
+                        console.log(res.data)
+                    })
+                },
+                changePlay: function (res) {
+                    console.log(res)
+                    this.dp.switchVideo({
+                        url: this.api + "/" + res
+                    })
+                    this.dp.play()
+                }
+            }
+        });
+    </script>
+    <style>
+        .wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+    </style>
+</body>
+
+</html>
