@@ -15,7 +15,7 @@
         <van-nav-bar title="Dor-Share" leftarrow="false"></van-nav-bar>
         <van-tabs @click="tabSwitch" :style="indexStyle" :lazy-render="false" sticky>
             <van-tab title="视频">
-                <div id="dplayer" style="height: 400px;"></div>
+                <div id="dplayer" style="height: 250px;"></div>
                 <van-cell-group v-for="(vi,index) in video" v-bind:key="index">
                     <van-cell :title="vi['name']" @click="changePlay(vi['path'])"></van-cell>
                 </van-cell-group>
@@ -108,7 +108,7 @@
             el: '#app',
             data() {
                 return {
-                    api: "http://127.0.0.1",
+                    api: "",
                     activeName: "0",
                     video: [],
                     play_url: "",
