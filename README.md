@@ -30,4 +30,4 @@ DorShare
 ## 注
 - 后期可能会全部推翻重新改写
 - 功能还不完善，需要持续修改
-- 作者博客：[歪克士](https://wicos.me/)
+- 作者博客：[歪克士](https://www.wicos.me/jishu/973.html)
